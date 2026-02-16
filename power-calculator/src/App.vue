@@ -9,25 +9,25 @@ const DEVICES = [
     id: 'heltec-t114',
     name: 'Heltec T114',
     chip: 'nRF52840 + SX1262',
-    rxMa: 5,    // SX1262 RX 4.8 mA + nRF52 sleep ~0.2 mA
-    txMa: 100,  // SX1262 TX @17 dBm 92 mA + nRF52 active 8 mA
-    chargeMaxMa: 1000,  // built-in charger, max 1 A (no MPPT)
+    rxMa: 9,    // Heltec official: 9 mA (GPS off, display off, Meshtastic router)
+    txMa: 130,  // SX1262 @+22 dBm ~118 mA + nRF52840 active ~3–5 mA ≈ 130 mA
+    chargeMaxMa: 500,  // TP4054 on-board charger; programmed current unpublished, ~500 mA est.
   },
   {
     id: 'heltec-v3',
     name: 'Heltec V3',
     chip: 'ESP32-S3 + SX1262',
-    rxMa: 10,   // SX1262 RX 4.8 mA + ESP32-S3 light sleep ~5 mA
-    txMa: 112,  // SX1262 TX @17 dBm 92 mA + ESP32-S3 active 20 mA
-    chargeMaxMa: null,  // no built-in solar charger
+    rxMa: 11,   // community measured: ~11 mA router mode standby (light sleep + SX1262 RX)
+    txMa: 135,  // SX1262 @+22 dBm ~118 mA + ESP32-S3 active ~15–20 mA ≈ 135 mA
+    chargeMaxMa: 500,  // TP4054 confirmed 500 mA from Heltec V3 schematic
   },
   {
     id: 'rak4631',
     name: 'RAK4631 (WisBlock)',
     chip: 'nRF52840 + SX1262',
-    rxMa: 5,
-    txMa: 100,
-    chargeMaxMa: 500,  // built-in RAK baseboard charger, ~500 mA (no MPPT)
+    rxMa: 5,    // community measured 2–6 mA; conservative mid-value 5 mA
+    txMa: 130,  // datasheet: 125 mA @+20 dBm; estimated ~130 mA @+22 dBm
+    chargeMaxMa: 350,  // RAK19007 / RAK19003 baseboard: 350 mA confirmed by datasheet
   },
 ]
 
