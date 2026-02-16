@@ -25,8 +25,7 @@ const batteryMah = ref(3000)   // 500–20 000 mAh
 const sunHours   = ref(4)      // 0–8 h/day
 const panelW     = ref(3)      // 0–6 W
 
-const SIM_VIZ_DAYS = 30   // chart window: daily cycle clearly visible
-const SIM_MAX_DAYS = 90   // runtime calculation horizon
+const SIM_MAX_DAYS = 90   // simulation horizon
 
 // ── Derived power values ───────────────────────────────────────────────────
 const txRatio = computed(() => txPercent.value / 100)
@@ -68,13 +67,23 @@ function simulateHours(deviceMa, days) {
   return out
 }
 
-// Viz: 30-day window to show daily cycles
-const nrfVizLevels = computed(() => simulateHours(nrfAvgMa.value, SIM_VIZ_DAYS))
-const espVizLevels = computed(() => simulateHours(espAvgMa.value, SIM_VIZ_DAYS))
-
-// Runtime: run to 90 days
+// Simulate full horizon for both devices
 const nrfAllLevels = computed(() => simulateHours(nrfAvgMa.value, SIM_MAX_DAYS))
 const espAllLevels = computed(() => simulateHours(espAvgMa.value, SIM_MAX_DAYS))
+
+function deathHour(levels) {
+  const idx = levels.findIndex((v, i) => i > 0 && v === 0)
+  return idx === -1 ? SIM_MAX_DAYS * 24 : idx
+}
+
+// Chart window: until the longer-lived device hits 0 (or SIM_MAX_DAYS)
+const vizDays = computed(() =>
+  Math.ceil(Math.max(deathHour(nrfAllLevels.value), deathHour(espAllLevels.value)) / 24)
+)
+
+// Viz levels are just slices of the full simulation
+const nrfVizLevels = computed(() => nrfAllLevels.value.slice(0, vizDays.value * 24 + 1))
+const espVizLevels = computed(() => espAllLevels.value.slice(0, vizDays.value * 24 + 1))
 
 function runtimeStr(levels) {
   const idx = levels.findIndex((v, i) => i > 0 && v === 0)
@@ -93,7 +102,7 @@ const plotW = W - PAD.l - PAD.r
 const plotH = H - PAD.t - PAD.b
 
 function toXday(day) {
-  return PAD.l + (day / SIM_VIZ_DAYS) * plotW
+  return PAD.l + (day / vizDays.value) * plotW
 }
 function toY(mah) {
   return PAD.t + plotH * (1 - mah / batteryMah.value)
@@ -123,7 +132,14 @@ const yGridLines = computed(() => {
   return lines
 })
 
-const xTicks = [0, 5, 10, 15, 20, 25, 30]
+const xTicks = computed(() => {
+  const d = vizDays.value
+  const step = d <= 4 ? 1 : d <= 10 ? 2 : d <= 20 ? 4 : d <= 40 ? 7 : d <= 60 ? 10 : 15
+  const ticks = []
+  for (let t = 0; t < d; t += step) ticks.push(t)
+  ticks.push(d)
+  return ticks
+})
 
 function fmtMah(v) {
   return v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}Ah` : `${v}`
