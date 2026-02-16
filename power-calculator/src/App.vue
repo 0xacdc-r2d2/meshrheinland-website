@@ -20,10 +20,11 @@ const ESP_RX_MA = 10    // ESP32 light sleep + SX1262 RX
 const ESP_TX_MA = 112   // ESP32-S3 active + SX1262 TX @ 17 dBm
 
 // ── Slider state ───────────────────────────────────────────────────────────
-const txPercent  = ref(1)      // 0–10 %
-const batteryMah = ref(3000)   // 500–20 000 mAh
-const sunHours   = ref(4)      // 0–8 h/day
-const panelW     = ref(3)      // 0–6 W
+const txPercent      = ref(1)     // 0–10 %
+const batteryMah     = ref(3000)  // 500–20 000 mAh
+const sunHours       = ref(4)     // 0–8 h/day
+const panelW         = ref(3)     // 0–10 W
+const chargeMaxMa    = ref(1000)  // 100–2000 mA (Laderegler-Limit)
 
 const SIM_MAX_DAYS = 90   // simulation horizon
 
@@ -40,10 +41,11 @@ const espAvgMa = computed(() =>
 const nrfDailyMah = computed(() => nrfAvgMa.value * 24)
 const espDailyMah = computed(() => espAvgMa.value * 24)
 
-// Solar yield per day: panel_W × sun_h × η(0.85) → Wh → mAh @ 3.7 V
-const solarMah = computed(() =>
-  panelW.value * sunHours.value * 0.85 * 1000 / 3.7
+// Solar yield per day, capped by charge controller limit
+const solarMaPerHour = computed(() =>
+  Math.min(panelW.value * 0.85 * 1000 / 3.7, chargeMaxMa.value)
 )
+const solarMah = computed(() => solarMaPerHour.value * sunHours.value)
 
 const nrfBalance = computed(() => solarMah.value - nrfDailyMah.value)
 const espBalance = computed(() => solarMah.value - espDailyMah.value)
@@ -54,7 +56,7 @@ const espBalance = computed(() => solarMah.value - espDailyMah.value)
 function simulateHours(deviceMa, days) {
   const cap       = batteryMah.value
   const sh        = sunHours.value
-  const solarMaH  = panelW.value * 0.85 * 1000 / 3.7  // mA during each sun hour
+  const solarMaH  = solarMaPerHour.value  // already capped by charge controller
   const sunrise   = 12 - sh / 2
   const sunset    = 12 + sh / 2
   const out = [cap]
@@ -175,8 +177,15 @@ function fmtMah(v) {
       <div class="row">
         <label>Solarpanel</label>
         <div class="slider-wrap">
-          <input type="range" min="0" max="6" step="1" v-model.number="panelW" />
+          <input type="range" min="0" max="10" step="1" v-model.number="panelW" />
           <span class="val">{{ panelW === 0 ? 'keins' : panelW + ' W' }}</span>
+        </div>
+      </div>
+      <div class="row">
+        <label>Laderegler max. <span class="hint">(CN3791, TP4056…)</span></label>
+        <div class="slider-wrap">
+          <input type="range" min="100" max="2000" step="100" v-model.number="chargeMaxMa" />
+          <span class="val">{{ (chargeMaxMa / 1000).toFixed(1) }} A</span>
         </div>
       </div>
     </div>
