@@ -88,7 +88,7 @@ const espRuntime = computed(() => runtimeStr(espAllLevels.value))
 // ── SVG chart geometry ─────────────────────────────────────────────────────
 const W = 560
 const H = 290
-const PAD = { t: 16, r: 24, b: 44, l: 72 }
+const PAD = { t: 16, r: 48, b: 44, l: 72 }
 const plotW = W - PAD.l - PAD.r
 const plotH = H - PAD.t - PAD.b
 
@@ -97,6 +97,11 @@ function toXday(day) {
 }
 function toY(mah) {
   return PAD.t + plotH * (1 - mah / batteryMah.value)
+}
+
+const pctTicks = [0, 25, 50, 75, 100]
+function toYpct(pct) {
+  return PAD.t + plotH * (1 - pct / 100)
 }
 
 function buildPoints(levels) {
@@ -177,8 +182,9 @@ function fmtMah(v) {
       />
 
       <!-- Axes -->
-      <line :x1="PAD.l" :y1="PAD.t"     :x2="PAD.l"      :y2="H - PAD.b" class="axis" />
-      <line :x1="PAD.l" :y1="H - PAD.b" :x2="W - PAD.r"  :y2="H - PAD.b" class="axis" />
+      <line :x1="PAD.l"      :y1="PAD.t"     :x2="PAD.l"      :y2="H - PAD.b" class="axis" />
+      <line :x1="PAD.l"      :y1="H - PAD.b" :x2="W - PAD.r"  :y2="H - PAD.b" class="axis" />
+      <line :x1="W - PAD.r"  :y1="PAD.t"     :x2="W - PAD.r"  :y2="H - PAD.b" class="axis" />
 
       <!-- Y labels -->
       <text
@@ -193,6 +199,25 @@ function fmtMah(v) {
         :x="toXday(x)" :y="H - PAD.b + 14"
         class="lbl lbl-x"
       >{{ x }}d</text>
+
+      <!-- Right axis: SoC % labels -->
+      <text
+        v-for="p in pctTicks" :key="`pr${p}`"
+        :x="W - PAD.r + 6" :y="toYpct(p) + 4"
+        class="lbl lbl-pct"
+      >{{ p }}%</text>
+      <!-- Right axis tick marks -->
+      <line
+        v-for="p in pctTicks" :key="`pt${p}`"
+        :x1="W - PAD.r" :y1="toYpct(p)" :x2="W - PAD.r + 4" :y2="toYpct(p)"
+        class="axis"
+      />
+      <!-- Right axis title -->
+      <text
+        :x="W - 8" :y="PAD.t + plotH / 2"
+        class="lbl axis-title"
+        :transform="`rotate(90, ${W - 8}, ${PAD.t + plotH / 2})`"
+      >SoC</text>
 
       <!-- Axis titles -->
       <text
@@ -329,8 +354,9 @@ body {
 .esp  { stroke: #ea580c; }
 
 .lbl { font-size: 11px; fill: #666; }
-.lbl-y { text-anchor: end; }
-.lbl-x { text-anchor: middle; }
+.lbl-y   { text-anchor: end; }
+.lbl-x   { text-anchor: middle; }
+.lbl-pct { text-anchor: start; fill: #999; }
 .axis-title { font-size: 10px; fill: #888; text-anchor: middle; }
 .legend-lbl { font-size: 11px; fill: #333; dominant-baseline: middle; }
 .legend-bg  { fill: white; stroke: #ddd; stroke-width: 1; }
