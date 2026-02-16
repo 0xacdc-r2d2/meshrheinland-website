@@ -25,7 +25,8 @@ const batteryMah = ref(3000)   // 500–20 000 mAh
 const sunHours   = ref(4)      // 0–8 h/day
 const panelW     = ref(3)      // 0–6 W
 
-const SIM_DAYS = 90
+const SIM_VIZ_DAYS = 30   // chart window: daily cycle clearly visible
+const SIM_MAX_DAYS = 90   // runtime calculation horizon
 
 // ── Derived power values ───────────────────────────────────────────────────
 const txRatio = computed(() => txPercent.value / 100)
@@ -40,7 +41,7 @@ const espAvgMa = computed(() =>
 const nrfDailyMah = computed(() => nrfAvgMa.value * 24)
 const espDailyMah = computed(() => espAvgMa.value * 24)
 
-// Solar yield: panel_W × sun_h × η(0.85) → Wh → mAh @ 3.7 V
+// Solar yield per day: panel_W × sun_h × η(0.85) → Wh → mAh @ 3.7 V
 const solarMah = computed(() =>
   panelW.value * sunHours.value * 0.85 * 1000 / 3.7
 )
@@ -48,27 +49,41 @@ const solarMah = computed(() =>
 const nrfBalance = computed(() => solarMah.value - nrfDailyMah.value)
 const espBalance = computed(() => solarMah.value - espDailyMah.value)
 
-// ── Simulation ─────────────────────────────────────────────────────────────
-function simulate(dailyConsumption) {
-  const net = dailyConsumption - solarMah.value  // positive = net drain
-  const cap = batteryMah.value
+// ── Hourly simulation ──────────────────────────────────────────────────────
+// Solar is available only between sunrise and sunset (centered at noon).
+// Each sun hour delivers panelW × η / 3.7V mAh to the battery.
+function simulateHours(deviceMa, days) {
+  const cap       = batteryMah.value
+  const sh        = sunHours.value
+  const solarMaH  = panelW.value * 0.85 * 1000 / 3.7  // mA during each sun hour
+  const sunrise   = 12 - sh / 2
+  const sunset    = 12 + sh / 2
   const out = [cap]
-  for (let d = 1; d <= SIM_DAYS; d++) {
-    const next = Math.min(cap, Math.max(0, out[d - 1] - net))
+  for (let h = 0; h < days * 24; h++) {
+    const hour  = h % 24
+    const solar = (sh > 0 && hour >= sunrise && hour < sunset) ? solarMaH : 0
+    const next  = Math.min(cap, Math.max(0, out[h] + solar - deviceMa))
     out.push(next)
   }
   return out
 }
 
-const nrfLevels = computed(() => simulate(nrfDailyMah.value))
-const espLevels = computed(() => simulate(espDailyMah.value))
+// Viz: 30-day window to show daily cycles
+const nrfVizLevels = computed(() => simulateHours(nrfAvgMa.value, SIM_VIZ_DAYS))
+const espVizLevels = computed(() => simulateHours(espAvgMa.value, SIM_VIZ_DAYS))
+
+// Runtime: run to 90 days
+const nrfAllLevels = computed(() => simulateHours(nrfAvgMa.value, SIM_MAX_DAYS))
+const espAllLevels = computed(() => simulateHours(espAvgMa.value, SIM_MAX_DAYS))
 
 function runtimeStr(levels) {
   const idx = levels.findIndex((v, i) => i > 0 && v === 0)
-  return idx === -1 ? `>${SIM_DAYS} Tage` : `${idx} Tage`
+  if (idx === -1) return `>${SIM_MAX_DAYS} Tage`
+  const days = idx / 24
+  return days < 2 ? `${(days * 24).toFixed(0)} h` : `${days.toFixed(1)} Tage`
 }
-const nrfRuntime = computed(() => runtimeStr(nrfLevels.value))
-const espRuntime = computed(() => runtimeStr(espLevels.value))
+const nrfRuntime = computed(() => runtimeStr(nrfAllLevels.value))
+const espRuntime = computed(() => runtimeStr(espAllLevels.value))
 
 // ── SVG chart geometry ─────────────────────────────────────────────────────
 const W = 560
@@ -77,8 +92,8 @@ const PAD = { t: 16, r: 24, b: 44, l: 72 }
 const plotW = W - PAD.l - PAD.r
 const plotH = H - PAD.t - PAD.b
 
-function toX(day) {
-  return PAD.l + (day / SIM_DAYS) * plotW
+function toXday(day) {
+  return PAD.l + (day / SIM_VIZ_DAYS) * plotW
 }
 function toY(mah) {
   return PAD.t + plotH * (1 - mah / batteryMah.value)
@@ -87,12 +102,12 @@ function toY(mah) {
 function buildPoints(levels) {
   const cap = batteryMah.value
   return levels
-    .map((v, i) => `${toX(i)},${PAD.t + plotH * (1 - v / cap)}`)
+    .map((v, h) => `${toXday(h / 24)},${PAD.t + plotH * (1 - v / cap)}`)
     .join(' ')
 }
 
-const nrfPoints = computed(() => buildPoints(nrfLevels.value))
-const espPoints = computed(() => buildPoints(espLevels.value))
+const nrfPoints = computed(() => buildPoints(nrfVizLevels.value))
+const espPoints = computed(() => buildPoints(espVizLevels.value))
 
 // Y grid: ~5 lines
 const yGridLines = computed(() => {
@@ -103,7 +118,7 @@ const yGridLines = computed(() => {
   return lines
 })
 
-const xTicks = [0, 15, 30, 45, 60, 90]
+const xTicks = [0, 5, 10, 15, 20, 25, 30]
 
 function fmtMah(v) {
   return v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}Ah` : `${v}`
@@ -157,7 +172,7 @@ function fmtMah(v) {
       <!-- X grid lines -->
       <line
         v-for="x in xTicks" :key="`xg${x}`"
-        :x1="toX(x)" :y1="PAD.t" :x2="toX(x)" :y2="H - PAD.b"
+        :x1="toXday(x)" :y1="PAD.t" :x2="toXday(x)" :y2="H - PAD.b"
         class="grid"
       />
 
@@ -175,7 +190,7 @@ function fmtMah(v) {
       <!-- X labels -->
       <text
         v-for="x in xTicks" :key="`xl${x}`"
-        :x="toX(x)" :y="H - PAD.b + 14"
+        :x="toXday(x)" :y="H - PAD.b + 14"
         class="lbl lbl-x"
       >{{ x }}d</text>
 
