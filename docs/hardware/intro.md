@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+description: Empfohlene Hardware für Meshtastic und MeshCore im Rheinland – LoRa-Geräte, Antennen und DIY-Selbstbauprojekte.
 ---
 
 # Hardware

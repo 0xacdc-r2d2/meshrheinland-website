@@ -1,3 +1,7 @@
+---
+description: Einstieg in MeshCore im Rheinland – Schnellstart, Rheinland-Standard-Preset (EU/UK Narrow, 869.618 MHz) und Erklärung der Firmware-Rollen.
+---
+
 # MeshCore im Rheinland
 
 MeshCore ist ein LoRa-basiertes Mesh-Netzwerk mit Fokus auf präzise Nachrichtenzustellung und minimalem Funkverkehr. Im Gegensatz zu Meshtastic unterscheidet MeshCore zwischen Infrastruktur (Repeater/Room Server) und Anwendern (Companion).

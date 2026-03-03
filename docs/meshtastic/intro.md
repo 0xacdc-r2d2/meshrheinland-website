@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+description: Einstieg in Meshtastic im Rheinland – Schnellstart, regionale Grundeinstellungen (EU868, ShortSlow) und die wichtigsten Links zur Community.
 ---
 
 # Willkommen
