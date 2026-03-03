@@ -3,7 +3,7 @@ sidebar_position: 1
 description: Einstieg in Meshtastic im Rheinland – Schnellstart, regionale Grundeinstellungen (EU868, ShortSlow) und die wichtigsten Links zur Community.
 ---
 
-# Willkommen
+# Meshtastic im Rheinland
 
 Willkommen auf der Info‑Seite für Meshtastic‑Nutzer im Rheinland. Du findest hier den Schnellstart, die in der Region genutzten Grundeinstellungen und die wichtigsten Links.
 
