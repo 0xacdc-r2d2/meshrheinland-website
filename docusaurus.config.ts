@@ -158,6 +158,10 @@ const config: Config = {
               label: 'MeshcoreSim.com',
               href: 'https://www.meshcoresim.com/',
             },
+            {
+              label: 'MeshCore Geo Prune',
+              href: 'https://static.pixelentry.de/meshcore/geo-prune/',
+            },
           ],
         },
         {
