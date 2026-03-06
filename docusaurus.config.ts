@@ -154,6 +154,10 @@ const config: Config = {
               label: 'WhatsApp Community',
               href: 'https://chat.whatsapp.com/JyNcTcgwlJf6Mhhf7vgYWD',
             },
+            {
+              label: 'MeshcoreSim.com',
+              href: 'https://www.meshcoresim.com/',
+            },
           ],
         },
         {
